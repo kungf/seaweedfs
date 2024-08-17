@@ -71,9 +71,16 @@ func (v *Volume) Compact2(preallocate int64, compactionBytePerSecond int64, prog
 	}
 	glog.V(3).Infof("Compact2 volume %d ...", v.Id)
 
+	v.dataFileAccessLock.Lock()
+	if v.isCompacting {
+		return fmt.Errorf("volume %d is compacting", v.Id)
+	}
 	v.isCompacting = true
+	v.dataFileAccessLock.Unlock()
 	defer func() {
+		v.dataFileAccessLock.Lock()
 		v.isCompacting = false
+		v.dataFileAccessLock.Unlock()
 	}()
 
 	v.lastCompactIndexOffset = v.IndexFileSize()
